@@ -6,6 +6,7 @@ class UserController {
         this.tableEl = document.getElementById(tableId);
         this.onSubmit();
         this.OnEdit();
+        this.selectAll();
 
     }
 
@@ -47,20 +48,13 @@ class UserController {
                         result._photo = content;
                     }
 
-                    tr.dataset.user = JSON.stringify(values);
-                    
-                    tr.innerHTML = `
-                        <td><img src="${result._photo}" alt="User Image" class="img-circle img-sm"></td>
-                        <td>${result._name}</td>
-                        <td>${result._email}</td>
-                        <td>${(result._admin) ? 'Sim' : 'Não'}</td>
-                        <td>${Utils.dateFormat(result._register)}</td>
-                        <td>
-                            <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
-                            <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-                        </td>
-                    `;
+                    let user = new User();
 
+                    user.loadFromJSON(result);
+
+                    user.save();
+  
+                    this.getTr(user, tr);
 
                     this.addEventsTR(tr);
 
@@ -103,6 +97,9 @@ class UserController {
                 (content)=> {
 
                     values.photo = content;
+
+                    values.save();
+
                     this.addLine(values);
 
                     this.formEl.reset();
@@ -217,40 +214,79 @@ class UserController {
     }
 
 
-    addLine(dataUser){
 
-        let tr = document.createElement('tr');
+    selectAll(){
 
-        tr.dataset.user = JSON.stringify(dataUser); // converteu o objeto string em serializado
+        let users = User.getUsersStorage();
 
-        tr.innerHTML = `
-            <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
-            <td>${dataUser.name}</td>
-            <td>${dataUser.email}</td>
-            <td>${(dataUser.admin) ? 'Sim' : 'Não'}</td>
-            <td>${Utils.dateFormat(dataUser.register)}</td>
-            <td>
-                <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
-                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-            </td>
-        `;
+        users.forEach(dataUser=>{
 
-        this.addEventsTR(tr);
-        
+            let user = new User();
 
+            user.loadFromJSON(dataUser);
 
+            this.addLine(user);
 
+        });
+
+    }
 
     
+    addLine(dataUser){
+
+       let tr = this.getTr(dataUser);
+
        this.tableEl.appendChild(tr);
 
        this.updateCount();
     
-        
-    
+    }
+
+    getTr(dataUser, tr = null){
+
+        if(tr === null) tr = document.createElement('tr');
+
+        tr.dataset.user = JSON.stringify(dataUser); // converteu o objeto string em serializado
+
+        tr.innerHTML = `
+        <td><img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm"></td>
+        <td>${dataUser.name}</td>
+        <td>${dataUser.email}</td>
+        <td>${(dataUser.admin) ? 'Sim' : 'Não'}</td>
+        <td>${Utils.dateFormat(dataUser.register)}</td>
+        <td>
+            <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
+            <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
+        </td>
+    `;
+
+    this.addEventsTR(tr);
+
+    return tr;
+
     }
 
     addEventsTR(tr){
+
+        tr.querySelector(".btn-delete").addEventListener("click", e =>{
+
+            if(confirm("Deseja Realmente excluir?")) {
+
+                let user = new User();
+
+                user.loadFromJSON(JSON.parse(tr.dataset.user));
+
+                user.remove();
+
+                tr.remove()
+
+                this.updateCount();
+
+            }
+
+
+
+        });
 
         tr.querySelector(".btn-edit").addEventListener("click", e=>{
 
